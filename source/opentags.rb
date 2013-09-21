@@ -1,14 +1,25 @@
+#!/usr/bin/env ruby
 require 'optparse'
+require 'ostruct'
 
-options = {}
-htmlFiles = []
+options = OpenStruct.new
+options.htmlFiles = []
+html = []
 
 OptionParser.new do |opts|
     opts.banner = "Usage: opentags.rb [options]"
     
-    options.on("-f", "--file", "HTML File input") do |file|
-        htmlFiles << file
+    opts.on("-f", "--file FILEPATH", "HTML File input") do |file|
+        options.htmlFiles << file
     end
 end.parse!
 
-p htmlFiles
+p options.htmlFiles
+
+options.htmlFiles.each do |filename|
+    file = File.open(filename, 'rb')
+    html << file.read
+    file.close
+end
+
+p html
