@@ -10,7 +10,7 @@ This seemed like a good, fun little weekend project. I found when looking at HTM
 
 Supply in the location of a text file containing HTML and it will go through and make sure each tag is closed. Note this is only tailored to fixing
 
-```tag-parser.rb -f <file>```
+```opentags.rb -f <file>```
 
 ## Who
 
