@@ -80,6 +80,7 @@ class ClosedTagFinder
         @errors = []                 # Array of errors to display
         @selfClosingTags = "area,base,basefont,br,col,frame,hr,img,input,isindex,link,meta,param,embed".split(",")
         @line = 0
+        @lastTag = ""                # Last tag processed
 
         htmlFiles.html.each do |lines|
             lines.each_index do |lineNumber|
@@ -87,6 +88,7 @@ class ClosedTagFinder
                 line = lines[lineNumber]
                 parseHTML(line)
             end
+            parseOpenTags()
             displayErrors()
         end
     end
@@ -124,6 +126,7 @@ class ClosedTagFinder
             end
 
             html.slice!(0, endTagIndex + 1)
+            @lastTag = tag
         end
     end
 
@@ -134,7 +137,7 @@ class ClosedTagFinder
             return
         end
         @block += 1 # we're inside a block
-        @tags << { :tag => tag, :block => @block.to_s, :line => @line }
+        @tags << { :tag => tag, :block => @block, :line => @line }
         @openTag = @tags.last
         # puts "Opening tag: " + tag + ":" + @block.to_s
     end
@@ -142,7 +145,7 @@ class ClosedTagFinder
     # Found Closing tag
     def closeTag(tag)
         openTag = @openTag
-        block = @block.to_s
+        block = @block
         tag.slice!(0)
         # puts "|-------Closing tag: " + tag + ":" + @block.to_s
 
@@ -152,23 +155,44 @@ class ClosedTagFinder
             @openTag = @tags.last
         else
             raiseError(tag, openTag)
-            @block -= 1
-            @tags.pop()
-            @openTag = @tags.last
+            if @tags.length > 1
+                @block -= 1
+                @tags.pop()
+                @openTag = @tags.last
+            end
+        end
+    end
+
+    # Parses @tags to see what's still open at the end
+    def parseOpenTags()
+        block = @block
+        @openTag = {:tag => @lastTag, :block => @block}
+        @tags.reverse!
+        @tags.each do |tag|
+            @openTag[:line] = tag[:line]
+            if tag[:tag] == @lastTag and block == tag[:block]
+                @tags.delete(tag)
+            else
+                raiseError(@openTag[:tag], tag)
+            end
+            block -= 1
         end
     end
 
     # Raise Error
     def raiseError(tag, openTag)
-        # puts 'Got: ' + tag + ', ' + openTag.to_s
-        @errors << "Found </" + tag + "> on line " + @line.to_s + " expected </" + openTag[:tag] + "> opened on line " + openTag[:line].to_s
+        @errors << formatError(tag, @line.to_s, openTag[:tag], openTag[:line].to_s)
+    end
+
+    # Format error message
+    def formatError(found, line, open, openLine)
+        return "Found </#{found}> on line #{line} expected </#{open}> opened on line #{openLine}."
     end
 
     # Display Errors
     def displayErrors()
-        puts @tags
         if @errors.empty?
-            puts "There were no (0) incomplete tags found."
+            puts "Success! There were no (0) incomplete tags found."
         else
             puts "There were (" + @errors.length.to_s + ") incomplete tags found."
             @errors.each do |e|
