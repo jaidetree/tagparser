@@ -202,14 +202,8 @@ class ClosedTagFinder
     end
 end
 
-# Runtime Logic
+# Run App
 ###############################################################################
-
-# options = CLIArgParser.new
-# htmlfiles = HTMLFileManager.new(options.files)
-# ClosedTagFinder.new(htmlfiles.html)
-
-# ClosedTagFinder.new(HTMLFileManager.new(CLIArgParser.new()))
 
 options = CLIArgParser.new
 htmlFiles = HTMLFileManager.new(options)
