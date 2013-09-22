@@ -141,7 +141,7 @@ class ClosedTagFinder
             @tags.pop()
         else
             raiseError(tag)
-            @tags.pop(2)
+            @tags.pop(2)  # Since a proper match was not found
         end
 
         @openTag = @tags.last
