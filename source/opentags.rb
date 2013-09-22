@@ -63,7 +63,7 @@ class HTMLFileManager
     end
 end
 
-# Main Application Functions
+# Main Application
 ###############################################################################
 
 class ClosedTagFinder
@@ -133,30 +133,30 @@ class ClosedTagFinder
 
     # Found Closing tag
     def closeTag(tag)
+        openTag = @openTag
         tag.slice!(0)
         # puts "|-------Closing tag: " + tag + ':' + @block.to_s
+
         @block -= 1
-
-        if @openTag == tag
-            @tags.pop()
-        else
-            raiseError(tag)
-            @tags.pop(2)  # Since a proper match was not found
-        end
-
+        @tags.pop()
         @openTag = @tags.last
+        if openTag != tag
+            raiseError(tag, openTag)
+            closeTag('/' + tag)
+        end
     end
 
     # Raise Error
-    def raiseError(tag)
-        @errors << "Found </" + tag + "> expected </" + @openTag.to_s + ">"
+    def raiseError(tag, openTag)
+        @errors << "Found </" + tag + "> expected </" + openTag + ">"
     end
 
     # Display Errors
     def displayErrors()
         if @errors.empty?
-            puts "There were no incomplete tags found."
+            puts "There were no (0) incomplete tags found."
         else
+            puts "There were (" + @errors.length.to_s + ") incomplete tags found."
             @errors.each do |e|
                 puts e
             end
