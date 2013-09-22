@@ -14,8 +14,8 @@
 #   If complexity grows, will be good to switch to Thor for arguments and
 #   building.
 ###############################################################################
-require 'optparse'
-require 'ostruct'
+require "optparse"
+require "ostruct"
 
 # Get CLI options
 class CLIArgParser
@@ -52,9 +52,13 @@ class HTMLFileManager
         @html = []
         # Read each HTML file and store it
         args.files.each do |filename|
-            file = File.open(filename, 'rb')
-            @html << file.read
+            lines = []
+            file = File.open(filename, "rb")
+            file.each_line do |line|
+                lines << line
+            end
             file.close
+            @html << lines
         end
     end
 
@@ -74,11 +78,15 @@ class ClosedTagFinder
         @block = 0                   # Numeric counter for level within tags
         @openTag = ""                # Currently open tag.
         @errors = []                 # Array of errors to display
-        @selfClosingTags = "area,base,basefont,br,col,frame,hr,img,input,isindex,link,meta,param,embed".split(',')
+        @selfClosingTags = "area,base,basefont,br,col,frame,hr,img,input,isindex,link,meta,param,embed".split(",")
+        @line = 0
 
-        htmlFiles.html.each do |htmlString|
-            @errors = []
-            parseHTML(htmlString)
+        htmlFiles.html.each do |lines|
+            lines.each_index do |lineNumber|
+                @line = lineNumber + 1
+                line = lines[lineNumber]
+                parseHTML(line)
+            end
             displayErrors()
         end
     end
@@ -87,7 +95,7 @@ class ClosedTagFinder
     def parseHTML(htmlString)
         html = htmlString
         while html.length > 0 do
-            index = html.index('<')
+            index = html.index("<")
             if html.empty? or index.nil?
                 html = ""
             else 
@@ -95,7 +103,7 @@ class ClosedTagFinder
             end
 
             # look for nearest ">"
-            endTagIndex = html.index('>')
+            endTagIndex = html.index(">")
 
             if endTagIndex.nil?
                 next
@@ -106,7 +114,7 @@ class ClosedTagFinder
 
             
             if tag.match(/^!\-\-/)
-                testIndex = html.index('-->')
+                testIndex = html.index("-->")
                 html.slice!(0, testIndex + 3)
                 next
             elsif tag.slice(0).match(/\w/)  # If tag starts with a letter, it's an open tag
@@ -121,38 +129,44 @@ class ClosedTagFinder
 
     # Found Start tag
     def startTag(tag)
-        tag = tag.split(' ').first
+        tag = tag.split(" ").first
         if tag.match(/\/$/) or @selfClosingTags.include?(tag)  # Ignore self closing tags.
             return
         end
         @block += 1 # we're inside a block
-        @openTag = tag
-        @tags << tag
-        # puts "Opening tag: " + tag + ':' + @block.to_s
+        @tags << { :tag => tag, :block => @block.to_s, :line => @line }
+        @openTag = @tags.last
+        # puts "Opening tag: " + tag + ":" + @block.to_s
     end
 
     # Found Closing tag
     def closeTag(tag)
         openTag = @openTag
+        block = @block.to_s
         tag.slice!(0)
-        # puts "|-------Closing tag: " + tag + ':' + @block.to_s
+        # puts "|-------Closing tag: " + tag + ":" + @block.to_s
 
-        @block -= 1
-        @tags.pop()
-        @openTag = @tags.last
-        if openTag != tag
+        if openTag[:tag] == tag && openTag[:block] == block
+            @block -= 1
+            @tags.pop()
+            @openTag = @tags.last
+        else
             raiseError(tag, openTag)
-            closeTag('/' + tag)
+            @block -= 1
+            @tags.pop()
+            @openTag = @tags.last
         end
     end
 
     # Raise Error
     def raiseError(tag, openTag)
-        @errors << "Found </" + tag + "> expected </" + openTag + ">"
+        # puts 'Got: ' + tag + ', ' + openTag.to_s
+        @errors << "Found </" + tag + "> on line " + @line.to_s + " expected </" + openTag[:tag] + "> opened on line " + openTag[:line].to_s
     end
 
     # Display Errors
     def displayErrors()
+        puts @tags
         if @errors.empty?
             puts "There were no (0) incomplete tags found."
         else
