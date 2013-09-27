@@ -149,7 +149,9 @@ class ClosedTagFinder
         tag.slice!(0)
         # puts "|-------Closing tag: " + tag + ":" + @block.to_s
 
-        if openTag[:tag] == tag && openTag[:block] == block
+        if openTag.nil?
+            @errors << "Found extra closing tag </" + tag + "> on line " + @line.to_s
+        elsif openTag[:tag] == tag && openTag[:block] == block
             @block -= 1
             @tags.pop()
             @openTag = @tags.last
